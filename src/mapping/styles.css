@@ -3147,3 +3147,41 @@ textarea {
 .map-filter-chips button { white-space: nowrap !important; }
 .merchant-pin.marker-orange span { background: var(--orange); color: white; }
 @media (max-width: 1180px) { .map-filter-strip { grid-template-columns: 1fr !important; } }
+
+
+/* === Request v4: compact region pill, one-row KPI, no category badge issues === */
+@media (min-width: 941px) {
+  .kpi-row {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+  }
+  .kpi {
+    min-width: 0 !important;
+    padding: 18px 16px !important;
+  }
+  .kpi strong {
+    font-size: 30px !important;
+  }
+  .kpi small {
+    font-size: 11.5px !important;
+  }
+}
+.selected-chip {
+  min-width: 74px !important;
+  max-width: 96px !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 6px 10px !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.selected-detail-hero h3 {
+  text-transform: none !important;
+}
+.table-merchant td strong,
+.log-item-header h3 {
+  text-transform: none !important;
+}
