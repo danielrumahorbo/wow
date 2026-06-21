@@ -225,3 +225,15 @@ option{background:#081326;color:#f8fafc;}
 #map .marker-winner span{background:var(--green);}
 #map .marker-watch span{background:var(--orange);}
 #map .marker-drop span{background:var(--red);}
+
+/* === Request-only revision: Treatrix header/meta cleanup and Leaflet merchant mapping === */
+#treatrixMap {
+  height: 560px;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #101827;
+}
+#treatrixMap .map-fallback {
+  min-height: 560px;
+}
