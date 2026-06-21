@@ -15,7 +15,6 @@ import qualityReport from './location_quality_report.json';
 const VISIT_KEY = 'mercator-location-visits-v1';
 const DEFAULT_CENTER = [-6.20, 106.86];
 const WILAYAH_OPTIONS = ['all', 'Jakarta', 'Depok', 'Tangerang', 'Bekasi'];
-const POTENTIAL_OPTIONS = ['all', 'High Potential', 'Medium Potential', 'Low Potential'];
 
 function safeText(value) {
   return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
@@ -33,11 +32,8 @@ function badgeClass(status) {
   return 'gray';
 }
 
-function markerClass(level) {
-  if (level === 'High Potential') return 'marker-green';
-  if (level === 'Medium Potential') return 'marker-orange';
-  if (level === 'Low Potential') return 'marker-red';
-  return 'marker-blue';
+function markerClass() {
+  return 'marker-orange';
 }
 
 function googleMapsUrl(location) {
@@ -109,8 +105,8 @@ function RadarMap({ locations, selected, onSelect }) {
 
     valid.forEach((location) => {
       const icon = L.divIcon({
-        className: `merchant-pin ${markerClass(location.potentialLevel)} ${selected?.id === location.id ? 'active' : ''}`,
-        html: `<span>${location.score}</span>`,
+        className: `merchant-pin ${markerClass()} ${selected?.id === location.id ? 'active' : ''}`,
+        html: `<span>•</span>`,
         iconSize: [36, 36],
         iconAnchor: [18, 18]
       });
@@ -133,9 +129,7 @@ function RadarMap({ locations, selected, onSelect }) {
     <div className="map-wrap">
       <div ref={mapNode} className="leaflet-host" />
       <div className="floating-card legend">
-        <div><span className="dot green"></span>High Potential</div>
-        <div><span className="dot orange"></span>Medium Potential</div>
-        <div><span className="dot red"></span>Low Potential</div>
+        <div><span className="dot orange"></span>Sekretariat RT/RW</div>
       </div>
       <div className="floating-card layer-note">
         <MapPinned size={15} /> New CIF Location Radar
@@ -155,7 +149,7 @@ function EmptyDetail() {
         </div>
         <div className="empty-guide-grid">
           <div><b>1</b><span>Pilih wilayah: Jakarta, Depok, Tangerang, atau Bekasi.</span></div>
-          <div><b>2</b><span>Prioritaskan lokasi dengan High Potential.</span></div>
+          <div><b>2</b><span>Pilih area sesuai wilayah kerja marketing cabang.</span></div>
           <div><b>3</b><span>Catat hasil visit untuk follow-up marketing cabang.</span></div>
         </div>
       </div>
@@ -172,11 +166,10 @@ function LocationDetail({ location, visits, onVisit }) {
     <div className="merchant-detail-card selected-merchant-card">
       <div className="panel-head compact">
         <h2>Location Detail</h2>
-        <Badge text={location.potentialLevel} />
       </div>
 
       <div className="detail-hero selected-detail-hero">
-        <div className="drawer-score">{location.score}</div>
+        <div className="detail-location-icon"><MapPinned size={24} /></div>
         <div>
           <div className="detail-title-row">
             <h3>{location.name}</h3>
@@ -204,10 +197,6 @@ function LocationDetail({ location, visits, onVisit }) {
 
       <div className="grid2 detail-metric-grid">
         <div>
-          <strong>Estimasi Pipeline</strong>
-          <p>{fmt(location.newCifPotential)} CIF</p>
-        </div>
-        <div>
           <strong>Status Visit</strong>
           <p>{lastVisit?.result || 'Belum Visit'}</p>
         </div>
@@ -215,15 +204,6 @@ function LocationDetail({ location, visits, onVisit }) {
           <strong>Kontak</strong>
           <p>{location.phone || '-'}</p>
         </div>
-        <div>
-          <strong>Sumber</strong>
-          <p>Internal</p>
-        </div>
-      </div>
-
-      <div className="recommendation-box">
-        <strong>Alasan Prioritas</strong>
-        <p>{location.reason}</p>
       </div>
 
       {lastVisit && (
@@ -329,7 +309,7 @@ function VisitModal({ location, onClose, onSave }) {
   );
 }
 
-function DirectoryTable({ rows, onSelect }) {
+function DirectoryTable({ rows, visits, onSelect }) {
   return (
     <div className="table-wrap">
       <table className="table-merchant">
@@ -338,9 +318,8 @@ function DirectoryTable({ rows, onSelect }) {
             <th>Lokasi Prospek</th>
             <th>Wilayah</th>
             <th>Tipe</th>
-            <th>Score</th>
-            <th>Potensi</th>
-            <th>Pipeline</th>
+            <th>Status Visit</th>
+            <th>Kontak</th>
             <th>Alamat</th>
           </tr>
         </thead>
@@ -350,9 +329,8 @@ function DirectoryTable({ rows, onSelect }) {
               <td><strong>{location.name}</strong><small>{location.id}</small></td>
               <td>{location.wilayah}</td>
               <td>{location.locationType}</td>
-              <td><strong>{location.score}</strong></td>
-              <td><Badge text={location.potentialLevel} /></td>
-              <td>{fmt(location.newCifPotential)} CIF</td>
+              <td><Badge text={getVisitStatus(location, visits)} /></td>
+              <td>{location.phone || '-'}</td>
               <td>{location.displayAddress || location.address}</td>
             </tr>
           ))}
@@ -409,7 +387,6 @@ function VisitLogs({ visits, onManualVisit }) {
         <div className="stats-list">
           <div className="stat-row"><label>Total Visit</label><span>{fmt(visits.length)}</span></div>
           <div className="stat-row"><label>Follow-up</label><span>{fmt(visits.filter(v => v.result === 'Follow-up').length)}</span></div>
-          <div className="stat-row"><label>Estimasi Pipeline</label><span>{fmt(totalPipeline)} CIF</span></div>
           <div className="stat-row"><label>Manual Visit</label><span>{fmt(visits.filter(v => !v.locationId).length)}</span></div>
         </div>
       </aside>
@@ -429,7 +406,6 @@ function App() {
   });
   const [query, setQuery] = useState('');
   const [wilayahFilter, setWilayahFilter] = useState('Jakarta');
-  const [potentialFilter, setPotentialFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [selected, setSelected] = useState(null);
   const [showVisit, setShowVisit] = useState(false);
@@ -448,12 +424,11 @@ function App() {
         const hay = `${location.name} ${location.address} ${location.wilayah} ${location.area} ${location.locationType}`.toLowerCase();
         const matchesQuery = !query || hay.includes(query.toLowerCase());
         const matchesWilayah = wilayahFilter === 'all' || location.wilayah === wilayahFilter;
-        const matchesPotential = potentialFilter === 'all' || location.potentialLevel === potentialFilter;
         const matchesType = typeFilter === 'all' || location.locationType === typeFilter;
-        return matchesQuery && matchesWilayah && matchesPotential && matchesType;
+        return matchesQuery && matchesWilayah && matchesType;
       })
-      .sort((a, b) => (b.score || 0) - (a.score || 0));
-  }, [locations, query, wilayahFilter, potentialFilter, typeFilter]);
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [locations, query, wilayahFilter, typeFilter]);
 
   useEffect(() => {
     if (selected && !filtered.some((location) => location.id === selected.id)) {
@@ -468,11 +443,14 @@ function App() {
   }, [locations]);
 
   const kpis = useMemo(() => {
-    const high = locations.filter((l) => l.potentialLevel === 'High Potential').length;
     const visitedIds = new Set(visits.filter((v) => v.locationId).map((v) => v.locationId));
     const unvisited = locations.filter((l) => !visitedIds.has(l.id)).length;
-    const pipeline = locations.reduce((a, l) => a + Number(l.newCifPotential || 0), 0);
-    return { total: locations.length, high, unvisited, pipeline };
+    return {
+      total: locations.length,
+      jakarta: locations.filter((l) => l.wilayah === 'Jakarta').length,
+      depok: locations.filter((l) => l.wilayah === 'Depok').length,
+      unvisited
+    };
   }, [locations, visits]);
 
   function openVisit(location) {
@@ -496,14 +474,10 @@ function App() {
       alamat: l.displayAddress || l.address,
       latitude: l.latitude,
       longitude: l.longitude,
-      score: l.score,
-      potensi: l.potentialLevel,
-      estimasi_new_cif: l.newCifPotential,
       rating: l.rating,
       review: l.reviewCount,
       kontak: l.phone,
       google_maps_url: l.googleMapsUrl,
-      alasan_prioritas: l.reason,
       sumber: 'Internal'
     }));
     exportExcel(`Mercator-location-report-${new Date().toISOString().slice(0, 10)}.xlsx`, rows, 'LOCATION_REPORT');
@@ -570,9 +544,9 @@ function App() {
         {activeTab === 'radar' && (
           <section className="kpi-row">
             <Kpi label="Lokasi Terpetakan" value={fmt(kpis.total)} note="sekretariat RT/RW unik hasil deduplikasi" icon={<MapPin />} />
-            <Kpi label="High Potential Area" value={fmt(kpis.high)} note="prioritas awal tim marketing cabang" icon={<Target />} />
+            <Kpi label="Jakarta" value={fmt(kpis.jakarta)} note="titik sekretariat RT/RW aktif" icon={<Home />} />
+            <Kpi label="Depok" value={fmt(kpis.depok)} note="titik sekretariat RT/RW aktif" icon={<Building2 />} />
             <Kpi label="Belum Visit" value={fmt(kpis.unvisited)} note="lokasi belum punya catatan kunjungan" icon={<Route />} />
-            <Kpi label="Estimasi Pipeline" value={fmt(kpis.pipeline)} note="proxy potensi New CIF dari scoring lokasi" icon={<Users />} />
           </section>
         )}
 
@@ -582,9 +556,6 @@ function App() {
               <div className="map-panel">
                 <div className="toolbar radar-toolbar">
                   <div className="searchbox"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari lokasi, RT/RW, alamat, wilayah..." /></div>
-                  <select value={potentialFilter} onChange={(e) => setPotentialFilter(e.target.value)} aria-label="Filter potensi">
-                    {POTENTIAL_OPTIONS.map((p) => <option key={p} value={p}>{p === 'all' ? 'Semua potensi' : p}</option>)}
-                  </select>
                   <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} aria-label="Filter tipe lokasi">
                     <option value="all">Semua tipe</option>
                     {types.map((t) => <option value={t} key={t}>{t}</option>)}
@@ -594,7 +565,7 @@ function App() {
                 <div className="map-filter-strip" aria-label="Filter wilayah">
                   <div className="map-filter-copy">
                     <strong>Filter wilayah</strong>
-                    <span>Data aktif saat ini: Jakarta dan Depok. Tangerang dan Bekasi disiapkan untuk ekspansi berikutnya.</span>
+
                   </div>
                   <div className="map-filter-chips">
                     {WILAYAH_OPTIONS.map((w) => (
@@ -636,12 +607,9 @@ function App() {
                   <select value={wilayahFilter} onChange={(e) => setWilayahFilter(e.target.value)}>
                     {WILAYAH_OPTIONS.map((w) => <option key={w} value={w}>{w === 'all' ? 'Semua Wilayah' : w}</option>)}
                   </select>
-                  <select value={potentialFilter} onChange={(e) => setPotentialFilter(e.target.value)}>
-                    {POTENTIAL_OPTIONS.map((p) => <option key={p} value={p}>{p === 'all' ? 'Semua Potensi' : p}</option>)}
-                  </select>
                 </div>
               </div>
-              <DirectoryTable rows={filtered} onSelect={(location) => { setSelected(location); setActiveTab('radar'); }} />
+              <DirectoryTable rows={filtered} visits={visits} onSelect={(location) => { setSelected(location); setActiveTab('radar'); }} />
             </div>
           </div>
         )}
