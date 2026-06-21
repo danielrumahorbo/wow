@@ -3130,3 +3130,20 @@ textarea {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* === Request-only revision: Mercator is location mapping, no scoring/potential display === */
+.detail-location-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  color: #071020;
+  background: linear-gradient(135deg, var(--mandiri-gold), #ffe082);
+  box-shadow: 0 14px 28px rgba(252, 196, 25, 0.20);
+}
+.map-filter-copy span:empty { display: none !important; }
+.map-filter-strip { grid-template-columns: minmax(160px, 0.4fr) minmax(0, 2fr) !important; }
+.map-filter-chips button { white-space: nowrap !important; }
+.merchant-pin.marker-orange span { background: var(--orange); color: white; }
+@media (max-width: 1180px) { .map-filter-strip { grid-template-columns: 1fr !important; } }
