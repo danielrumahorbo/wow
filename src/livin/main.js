@@ -12,7 +12,9 @@ const state = {
   search: '',
   classFilter: 'all',
   claimFilter: 'all',
-  uploadDraft: { merchantRows: null, claimRows: null, merchantName: '', claimName: '' }
+  uploadDraft: { merchantRows: null, claimRows: null, merchantName: '', claimName: '' },
+  map: null,
+  mapLayers: []
 };
 
 const app = document.getElementById('app');
@@ -226,10 +228,6 @@ function renderShell() {
         <header class="topbar">
           <div>
             <h1>Treatrix</h1>
-            <div class="file-meta">
-              <span>Merchant: <b>${safe(state.merchantFileName)}</b></span>
-              <span>Bukti/Form: <b>${safe(state.claimsFileName)}</b></span>
-            </div>
           </div>
           <div class="top-actions">
             ${state.tab === 'summary' ? `<button class="btn yellow" id="uploadProgramBtn">${icon('upload')} Upload Data Program</button>` : ''}
@@ -289,13 +287,9 @@ function renderSummary() {
   return `
     ${renderKpis()}
     <div class="card card-pad">
-      <div class="section-head"><div><h2>Funnel Program</h2><p>Section ini membaca kualitas merchant existing KGB dari data LVM: total merchant → merchant aktif → segmentasi WINNER/WATCH/DROP untuk menentukan prioritas promo dan alokasi kuota cabang.</p></div></div>
+      <div class="section-head"><div><h2>Funnel Program</h2><p>Distribusi merchant existing KGB berdasarkan status transaksi dan klasifikasi performa.</p></div></div>
       <div class="funnel">
         ${funnel.map(f => `<div class="funnel-step"><b>${fmt(f[1])}</b><span>${f[0]}</span><div class="funnel-bar"><i style="--w:${Math.min(100, f[2])}%"></i></div><small>${f[2]}% · ${f[3]}</small></div>`).join('')}
-      </div>
-      <div class="merchant-mini" style="margin-top:14px">
-        <strong>Cara baca funnel</strong>
-        <small>WINNER dipakai sebagai merchant prioritas campaign karena performanya paling kuat; WATCH dipertahankan untuk treatment dan evaluasi; DROP tidak menjadi prioritas awal kecuali ada arahan khusus cabang.</small>
       </div>
     </div>
     <div class="card card-pad" style="margin-top:18px">
@@ -349,24 +343,33 @@ function renderClaims() {
     </div>`;
 }
 
-function renderMapping() {
-  const rows = state.merchants.slice(0, 18).map((m, i) => ({
+function merchantMapRows() {
+  const baseLat = -6.1625;
+  const baseLng = 106.9106;
+  return state.merchants.slice(0, 18).map((m, i) => ({
     ...m,
-    top: 12 + ((i * 17) % 70),
-    left: 10 + ((i * 23) % 78)
+    lat: baseLat + (((i * 7) % 11) - 5) * 0.00155,
+    lng: baseLng + (((i * 11) % 13) - 6) * 0.00175
   }));
+}
+
+function renderMapping() {
+  const rows = merchantMapRows();
   return `
     <div class="map-layout">
       <div class="card map-card">
-        <div class="section-head"><div><h2>Merchant Mapping</h2><p>Dummy visual menggunakan merchant existing KGB. Titik koordinat real dapat ditambahkan saat file bulanan sudah memiliki latitude/longitude.</p></div></div>
-        <div id="map" style="position:relative;background:radial-gradient(circle at 20% 20%, rgba(252,196,25,.16), transparent 25%), radial-gradient(circle at 80% 60%, rgba(13,123,242,.18), transparent 28%), #101827;">
-          ${rows.map(m => `<button title="${safe(m.storeName)}" class="marker-pin marker-${m.classification.toLowerCase()}" style="position:absolute;top:${m.top}%;left:${m.left}%;transform:translate(-50%,-50%);"><span>${m.classification === 'WINNER' ? 'W' : m.classification === 'WATCH' ? 'T' : 'D'}</span></button>`).join('')}
-          <div class="map-fallback" style="pointer-events:none;position:absolute;inset:0;background:transparent;place-items:end start;text-align:left;padding:20px;"><div><strong>Dummy Merchant Mapping KGB</strong><br/>Hijau = Winner, Oranye = Watch, Merah = Drop.</div></div>
+        <div class="section-head"><div><h2>Merchant Mapping</h2><p>Dummy visual menggunakan merchant existing KGB. Titik koordinat real dapat ditambahkan saat data merchant sudah memiliki latitude/longitude.</p></div></div>
+        <div class="map-toolbar">
+          <select id="mapClassFilter"><option value="all">Semua merchant</option><option value="WINNER">WINNER</option><option value="WATCH">WATCH</option><option value="DROP">DROP</option></select>
+          <button class="btn ghost" id="fitTreatrixMap">Fit ke semua titik</button>
         </div>
+        <div id="treatrixMap"><div class="map-fallback"><div><strong>Map belum tersedia</strong><br/>Pastikan koneksi internet aktif agar Leaflet/OpenStreetMap bisa dimuat.</div></div></div>
       </div>
       <div class="card map-side">
-        <h2>Ringkasan Merchant</h2><p class="sub">Contoh tampilan titik merchant partner berdasarkan klasifikasi Treatrix.</p>
-        ${rows.slice(0,12).map(m => `<div class="merchant-mini"><strong>${safe(m.storeName)}</strong><small>${safe(m.lob || '-')}</small>${badge(m.classification)}</div>`).join('')}
+        <h2>Ringkasan Titik</h2><p class="sub">Klik marker untuk melihat klasifikasi merchant.</p>
+        <div id="mapSideList">
+          ${rows.slice(0,12).map(m => `<div class="merchant-mini"><strong>${safe(m.storeName)}</strong><small>${safe(m.lob || '-')}</small>${badge(m.classification)}</div>`).join('')}
+        </div>
       </div>
     </div>`;
 }
@@ -388,11 +391,35 @@ function bindViewEvents() {
   if (cf) cf.addEventListener('change', e => { state.classFilter = e.target.value; filterMerchantTable(); });
   const claimFilter = document.getElementById('claimFilter');
   if (claimFilter) claimFilter.addEventListener('change', e => { state.claimFilter = e.target.value; render(); });
+  const mapFilter = document.getElementById('mapClassFilter');
+  if (mapFilter) mapFilter.addEventListener('change', () => initMap());
+  const fitMap = document.getElementById('fitTreatrixMap');
+  if (fitMap) fitMap.addEventListener('click', () => initMap());
   filterMerchantTable();
 }
 
 function initMap() {
-  // Intentional: current real LVM data has no merchant coordinates.
+  const el = document.getElementById('treatrixMap');
+  if (!el || !window.L) return;
+  if (state.map) {
+    state.map.remove();
+    state.map = null;
+    state.mapLayers = [];
+  }
+  state.map = L.map('treatrixMap', { zoomControl: true }).setView([-6.1625, 106.9106], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20, attribution:'&copy; OpenStreetMap' }).addTo(state.map);
+  const cls = document.getElementById('mapClassFilter')?.value || 'all';
+  const rows = merchantMapRows().filter(m => cls === 'all' || m.classification === cls);
+  rows.forEach(m => {
+    const markerClassName = m.classification === 'WINNER' ? 'marker-winner' : m.classification === 'WATCH' ? 'marker-watch' : 'marker-drop';
+    const marker = L.marker([m.lat, m.lng], { icon: L.divIcon({ className:`marker-pin ${markerClassName}`, html:`<span>${m.classification === 'WINNER' ? 'W' : m.classification === 'WATCH' ? 'T' : 'D'}</span>`, iconSize:[34,34], iconAnchor:[17,17] })}).addTo(state.map);
+    marker.bindPopup(`<div class="popup-title">${safe(m.storeName)}</div><div class="popup-meta">${safe(m.lob || '-')}<br/>${safe(m.classification)}</div>`);
+    state.mapLayers.push(marker);
+  });
+  if (rows.length) {
+    const bounds = L.latLngBounds(rows.map(m => [m.lat, m.lng]));
+    state.map.fitBounds(bounds.pad(.18), { maxZoom: 15 });
+  }
 }
 
 function openUploadModal() {
