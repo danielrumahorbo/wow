@@ -237,3 +237,122 @@ option{background:#081326;color:#f8fafc;}
 #treatrixMap .map-fallback {
   min-height: 560px;
 }
+
+
+/* === Request v4: Treatrix brand/footer alignment and cleaner funnel/map summary === */
+.sidebar .brand-section {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding-bottom: 24px !important;
+  margin-bottom: 20px !important;
+  border-bottom: 1px solid rgba(255,255,255,.05) !important;
+}
+.sidebar .brand-logo {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, var(--mandiri-gold), #ffe58a) !important;
+  color: #011d3d !important;
+  display: grid !important;
+  place-items: center !important;
+  box-shadow: 0 0 20px rgba(252,196,25,.35) !important;
+  position: relative !important;
+}
+.sidebar .brand-logo .logo-icon,
+.sidebar .brand-logo .logo-icon svg {
+  width: 22px !important;
+  height: 22px !important;
+  color: #011d3d !important;
+  display: block !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+.sidebar .brand-info {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 1px !important;
+  min-width: 0 !important;
+}
+.sidebar .brand-title {
+  font-size: 18px !important;
+  line-height: 1.08 !important;
+  font-weight: 800 !important;
+  letter-spacing: .5px !important;
+  color: var(--text-primary) !important;
+  background: linear-gradient(135deg,#fff 50%,var(--mandiri-gold) 100%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  white-space: nowrap !important;
+}
+.sidebar .brand-subtitle {
+  font-size: 11px !important;
+  line-height: 1.12 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1.5px !important;
+  color: var(--text-secondary) !important;
+  font-weight: 700 !important;
+  opacity: .8 !important;
+  white-space: nowrap !important;
+}
+.sidebar-footer {
+  margin-top: auto !important;
+  border-top: 1px solid rgba(255,255,255,.05) !important;
+  padding-top: 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+.user-profile {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+.user-avatar {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg,#0d7bf2,#003d79) !important;
+  color: var(--mandiri-gold) !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  display: grid !important;
+  place-items: center !important;
+  border: 1px solid rgba(255,255,255,.1) !important;
+}
+.user-info {
+  display: flex !important;
+  flex-direction: column !important;
+}
+.user-name {
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+  white-space: nowrap !important;
+}
+.user-role {
+  font-size: 11px !important;
+  color: var(--text-secondary) !important;
+  white-space: nowrap !important;
+}
+.sync-status-widget {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: rgba(255,255,255,.015) !important;
+  border: 1px solid rgba(255,255,255,.03) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+}
+.funnel-step {
+  min-height: 104px !important;
+}
+.funnel-step small {
+  display: none !important;
+}
+.map-side .merchant-mini .progress {
+  margin-top: 8px !important;
+}
