@@ -24,6 +24,22 @@ function fmt(value) {
   return Number(value || 0).toLocaleString('id-ID');
 }
 
+function properText(value) {
+  const text = String(value ?? '').replace(/\s+/g, ' ').trim();
+  if (!text) return '-';
+  return text
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .replace(/\bRt\b/g, 'RT')
+    .replace(/\bRw\b/g, 'RW')
+    .replace(/RT\.\s*/g, 'RT. ')
+    .replace(/RW\.\s*/g, 'RW. ')
+    .replace(/\bDki\b/g, 'DKI')
+    .replace(/\bDki Jakarta\b/g, 'DKI Jakarta')
+    .replace(/\bJl\b/g, 'Jl.')
+    .replace(/Jl\.\./g, 'Jl.');
+}
+
 function badgeClass(status) {
   if (status === 'High Potential' || status === 'Selesai') return 'green';
   if (status === 'Medium Potential' || status === 'Follow-up') return 'orange';
@@ -111,7 +127,7 @@ function RadarMap({ locations, selected, onSelect }) {
         iconAnchor: [18, 18]
       });
       const marker = L.marker([Number(location.latitude), Number(location.longitude)], { icon }).addTo(mapRef.current);
-      marker.bindTooltip(location.name, { direction: 'top', offset: [0, -12] });
+      marker.bindTooltip(properText(location.name), { direction: 'top', offset: [0, -12] });
       marker.on('click', () => onSelect(location));
       layersRef.current.push(marker);
     });
@@ -172,18 +188,11 @@ function LocationDetail({ location, visits, onVisit }) {
         <div className="detail-location-icon"><MapPinned size={24} /></div>
         <div>
           <div className="detail-title-row">
-            <h3>{location.name}</h3>
-            <span className="selected-chip">{location.wilayah}</span>
+            <h3>{properText(location.name)}</h3>
+            <span className="selected-chip">{properText(location.wilayah)}</span>
           </div>
-          <p>{location.locationType} · {location.area}</p>
+          <p>{properText(location.locationType)} · {properText(location.area)}</p>
         </div>
-      </div>
-
-      <div className="badges detail-badges">
-        <span>{location.category}</span>
-        <span>{location.visitStatus || 'Belum Visit'}</span>
-        {location.rating ? <span className="success">Rating {location.rating}</span> : null}
-        {location.reviewCount ? <span>{location.reviewCount} review</span> : null}
       </div>
 
       <div className="drawer-section detail-address-card">
@@ -191,8 +200,8 @@ function LocationDetail({ location, visits, onVisit }) {
           <strong>Alamat / Koordinat</strong>
           <a className="map-mini-btn" href={googleMapsUrl(location)} target="_blank" rel="noreferrer">Buka Maps</a>
         </div>
-        <p>{location.displayAddress || location.address}</p>
-        <p>{location.wilayahDetail || location.wilayah}</p>
+        <p>{properText(location.displayAddress || location.address)}</p>
+        <p>{properText(location.wilayahDetail || location.wilayah)}</p>
       </div>
 
       <div className="grid2 detail-metric-grid">
@@ -225,7 +234,7 @@ function VisitModal({ location, onClose, onSave }) {
   const [form, setForm] = useState({
     visitDate: new Date().toISOString().slice(0, 10),
     officerName: 'Admin',
-    locationName: location?.name || '',
+    locationName: properText(location?.name || ''),
     picName: '',
     result: 'Follow-up',
     estimatedCif: location?.newCifPotential || 0,
@@ -326,12 +335,12 @@ function DirectoryTable({ rows, visits, onSelect }) {
         <tbody>
           {rows.map((location) => (
             <tr key={location.id} onClick={() => onSelect(location)}>
-              <td><strong>{location.name}</strong><small>{location.id}</small></td>
+              <td><strong>{properText(location.name)}</strong><small>{location.id}</small></td>
               <td>{location.wilayah}</td>
-              <td>{location.locationType}</td>
+              <td>{properText(location.locationType)}</td>
               <td><Badge text={getVisitStatus(location, visits)} /></td>
               <td>{location.phone || '-'}</td>
-              <td>{location.displayAddress || location.address}</td>
+              <td>{properText(location.displayAddress || location.address)}</td>
             </tr>
           ))}
         </tbody>
@@ -358,7 +367,7 @@ function VisitLogs({ visits, onManualVisit }) {
             <article className="log-item-card" key={visit.id}>
               <div className="log-item-header">
                 <div>
-                  <h3>{visit.locationName}</h3>
+                  <h3>{properText(visit.locationName)}</h3>
                   <div className="log-item-meta">
                     <span><CalendarDays size={13} />{visit.visitDate}</span>
                     <span><Users size={13} />{visit.officerName}</span>
@@ -449,6 +458,8 @@ function App() {
       total: locations.length,
       jakarta: locations.filter((l) => l.wilayah === 'Jakarta').length,
       depok: locations.filter((l) => l.wilayah === 'Depok').length,
+      tangerang: locations.filter((l) => l.wilayah === 'Tangerang').length,
+      bekasi: locations.filter((l) => l.wilayah === 'Bekasi').length,
       unvisited
     };
   }, [locations, visits]);
@@ -468,10 +479,10 @@ function App() {
   function exportReport() {
     const rows = filtered.map((l) => ({
       id: l.id,
-      nama_lokasi: l.name,
+      nama_lokasi: properText(l.name),
       wilayah: l.wilayah,
       tipe_lokasi: l.locationType,
-      alamat: l.displayAddress || l.address,
+      alamat: properText(l.displayAddress || l.address),
       latitude: l.latitude,
       longitude: l.longitude,
       rating: l.rating,
@@ -543,10 +554,12 @@ function App() {
 
         {activeTab === 'radar' && (
           <section className="kpi-row">
-            <Kpi label="Lokasi Terpetakan" value={fmt(kpis.total)} note="sekretariat RT/RW unik hasil deduplikasi" icon={<MapPin />} />
-            <Kpi label="Jakarta" value={fmt(kpis.jakarta)} note="titik sekretariat RT/RW aktif" icon={<Home />} />
-            <Kpi label="Depok" value={fmt(kpis.depok)} note="titik sekretariat RT/RW aktif" icon={<Building2 />} />
-            <Kpi label="Belum Visit" value={fmt(kpis.unvisited)} note="lokasi belum punya catatan kunjungan" icon={<Route />} />
+            <Kpi label="Lokasi Terpetakan" value={fmt(kpis.total)} note="sekretariat RT/RW unik" icon={<MapPin />} />
+            <Kpi label="Jakarta" value={fmt(kpis.jakarta)} note="titik aktif" icon={<Home />} />
+            <Kpi label="Depok" value={fmt(kpis.depok)} note="titik aktif" icon={<Building2 />} />
+            <Kpi label="Tangerang" value={fmt(kpis.tangerang)} note="titik aktif" icon={<MapPin />} />
+            <Kpi label="Bekasi" value={fmt(kpis.bekasi)} note="titik aktif" icon={<MapPin />} />
+            <Kpi label="Belum Visit" value={fmt(kpis.unvisited)} note="belum dicatat" icon={<Route />} />
           </section>
         )}
 
