@@ -196,7 +196,7 @@ function renderShell() {
       <aside class="sidebar">
         <div class="brand-section">
           <div class="brand-logo">
-            <span class="logo-icon">⌖</span>
+            <span class="logo-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-5.1 7-11a7 7 0 1 0-14 0c0 5.9 7 11 7 11Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>
             <div class="radar-pulse"></div>
           </div>
           <div class="brand-info">
@@ -289,7 +289,7 @@ function renderSummary() {
     <div class="card card-pad">
       <div class="section-head"><div><h2>Funnel Program</h2><p>Distribusi merchant existing KGB berdasarkan status transaksi dan klasifikasi performa.</p></div></div>
       <div class="funnel">
-        ${funnel.map(f => `<div class="funnel-step"><b>${fmt(f[1])}</b><span>${f[0]}</span><div class="funnel-bar"><i style="--w:${Math.min(100, f[2])}%"></i></div><small>${f[2]}% · ${f[3]}</small></div>`).join('')}
+        ${funnel.map(f => `<div class="funnel-step"><b>${fmt(f[1])}</b><span>${f[0]}</span><div class="funnel-bar"><i style="--w:${Math.min(100, f[2])}%"></i></div></div>`).join('')}
       </div>
     </div>
     <div class="card card-pad" style="margin-top:18px">
@@ -353,8 +353,13 @@ function merchantMapRows() {
   }));
 }
 
+function cifCountByMerchant(name) {
+  return state.claims.filter(c => norm(c.merchantName) === norm(name) && c.cifStatus === 'Valid').length;
+}
+
 function renderMapping() {
-  const rows = merchantMapRows();
+  const rows = merchantMapRows().map(m => ({ ...m, cifCount: cifCountByMerchant(m.storeName) }));
+  const maxCif = Math.max(...rows.map(m => Number(m.cifCount || 0)), 1);
   return `
     <div class="map-layout">
       <div class="card map-card">
@@ -366,9 +371,9 @@ function renderMapping() {
         <div id="treatrixMap"><div class="map-fallback"><div><strong>Map belum tersedia</strong><br/>Pastikan koneksi internet aktif agar Leaflet/OpenStreetMap bisa dimuat.</div></div></div>
       </div>
       <div class="card map-side">
-        <h2>Ringkasan Titik</h2><p class="sub">Klik marker untuk melihat klasifikasi merchant.</p>
+        <h2>Ringkasan Titik</h2><p class="sub">Progress CIF yang sudah masuk melalui merchant tersebut.</p>
         <div id="mapSideList">
-          ${rows.slice(0,12).map(m => `<div class="merchant-mini"><strong>${safe(m.storeName)}</strong><small>${safe(m.lob || '-')}</small>${badge(m.classification)}</div>`).join('')}
+          ${rows.slice(0,12).map(m => `<div class="merchant-mini"><strong>${safe(m.storeName)}</strong><small>${safe(m.lob || '-')}</small><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${badge(m.classification)}<span class="badge blue">CIF ${fmt(m.cifCount)}</span></div><div class="progress"><i style="--w:${Math.min(100, Math.round((Number(m.cifCount || 0) / maxCif) * 100))}%"></i></div></div>`).join('')}
         </div>
       </div>
     </div>`;
@@ -409,11 +414,11 @@ function initMap() {
   state.map = L.map('treatrixMap', { zoomControl: true }).setView([-6.1625, 106.9106], 14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20, attribution:'&copy; OpenStreetMap' }).addTo(state.map);
   const cls = document.getElementById('mapClassFilter')?.value || 'all';
-  const rows = merchantMapRows().filter(m => cls === 'all' || m.classification === cls);
+  const rows = merchantMapRows().map(m => ({ ...m, cifCount: cifCountByMerchant(m.storeName) })).filter(m => cls === 'all' || m.classification === cls);
   rows.forEach(m => {
     const markerClassName = m.classification === 'WINNER' ? 'marker-winner' : m.classification === 'WATCH' ? 'marker-watch' : 'marker-drop';
-    const marker = L.marker([m.lat, m.lng], { icon: L.divIcon({ className:`marker-pin ${markerClassName}`, html:`<span>${m.classification === 'WINNER' ? 'W' : m.classification === 'WATCH' ? 'T' : 'D'}</span>`, iconSize:[34,34], iconAnchor:[17,17] })}).addTo(state.map);
-    marker.bindPopup(`<div class="popup-title">${safe(m.storeName)}</div><div class="popup-meta">${safe(m.lob || '-')}<br/>${safe(m.classification)}</div>`);
+    const marker = L.marker([m.lat, m.lng], { icon: L.divIcon({ className:`marker-pin ${markerClassName}`, html:`<span>${m.cifCount}</span>`, iconSize:[34,34], iconAnchor:[17,17] })}).addTo(state.map);
+    marker.bindPopup(`<div class="popup-title">${safe(m.storeName)}</div><div class="popup-meta">${safe(m.lob || '-')}<br/>${safe(m.classification)} · CIF ${fmt(m.cifCount)}</div>`);
     state.mapLayers.push(marker);
   });
   if (rows.length) {
