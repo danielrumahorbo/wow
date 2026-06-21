@@ -1,0 +1,2 @@
+id,date,customerName,phone,merchantCode,merchantName,promo,openingProof,livinProof,cifStatus,livinStatus,promoStatus
+CLM-001,2026-07-01,Budi,0812,KGB-001,Contoh Merchant,Diskon 10%,Ada,Ada,Valid,Valid,Redeem

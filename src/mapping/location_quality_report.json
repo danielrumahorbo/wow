@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-06-21T09:30:34",
+  "inputRowsByFile": {
+    "sekre rt depok.xlsx": 10,
+    "sekre rt jakarta 1.xlsx": 22,
+    "sekre rt jakarta 2.xlsx": 41,
+    "sekretariat rt kelapa gading.xlsx": 8
+  },
+  "totalInputRows": 81,
+  "uniqueLocations": 63,
+  "duplicatesRemoved": 18,
+  "duplicatesByPair": {
+    "sekre rt jakarta 2.xlsx -> kept sekre rt jakarta 1.xlsx": 17,
+    "sekretariat rt kelapa gading.xlsx -> kept sekre rt jakarta 2.xlsx": 1
+  },
+  "wilayahCounts": {
+    "Jakarta": 53,
+    "Depok": 10
+  },
+  "potentialCounts": {
+    "High Potential": 37,
+    "Medium Potential": 26
+  },
+  "lvmRows": 280,
+  "lvmClassificationCounts": {
+    "WINNER": 69,
+    "WATCH": 120,
+    "DROP": 91
+  },
+  "dedupeMethod": "Google Place ID dari URL, fallback koordinat+nama jika Place ID tidak tersedia.",
+  "mercatorDataScope": "Sekretariat RT/RW hasil scraping Google Maps untuk Jakarta dan Depok. Filter Tangerang dan Bekasi disediakan untuk ekspansi data berikutnya.",
+  "activeLocations": 63,
+  "invalidCoordinateRemoved": 0
+}

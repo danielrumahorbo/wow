@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "installCommand": "npm install --package-lock=false --no-audit --no-fund",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/mapping", "destination": "/mapping.html" },
+    { "source": "/livin", "destination": "/livin.html" }
+  ]
+}
